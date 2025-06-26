@@ -398,6 +398,15 @@
         const sessionId = generateId('session');
         const userId = getUserId();
 
+        // Get client information
+        function getClientInfo() {
+            return {
+                user_agent: navigator.userAgent,
+                screen_resolution: `${screen.width}x${screen.height}`,
+                language: navigator.language || 'en-US'
+            };
+        }
+
         // Event logging function
         function logEvent(message, isError = false) {
             const eventLog = document.getElementById('eventLog');
@@ -409,15 +418,16 @@
             eventLog.scrollTop = eventLog.scrollHeight;
         }
 
-        // Send event to backend analytics service
+        // Send event to backend analytics service with new payload structure
         async function sendEvent(eventType, eventData) {
             const payload = {
+                event_type: eventType,
                 timestamp: new Date().toISOString(),
                 user_id: userId,
                 session_id: sessionId,
-                event_type: eventType,
                 page_url: window.location.href,
-                ...eventData
+                event_data: eventData,
+                client_info: getClientInfo()
             };
 
             try {
@@ -443,21 +453,20 @@
 
         // Event handlers
         document.addEventListener('DOMContentLoaded', function() {
-            // Send page view event
-            sendEvent('page_view', { 
-                title: document.title,
-                page_type: 'product_catalog',
+            // Send page view event with new structure
+            sendEvent('page_view', {
+                page_title: document.title,
+                page_type: 'category',
                 total_products: 10
             });
 
-            // Search functionality
+            // Search functionality with new structure
             document.getElementById('searchBtn').addEventListener('click', function() {
                 const searchQuery = document.getElementById('searchBox').value.trim();
                 if (searchQuery) {
                     sendEvent('search', {
                         query: searchQuery,
-                        search_box_id: 'searchBox',
-                        search_context: 'mobile_phones'
+                        search_box_id: 'searchBox'
                     });
                 } else {
                     logEvent('⚠️ Search attempted with empty query', true);
@@ -471,28 +480,32 @@
                 }
             });
 
-            // Product image clicks
+            // Product image clicks with new structure
             document.querySelectorAll('img[data-product-id]').forEach(img => {
                 img.addEventListener('click', function() {
-                    sendEvent('image_click', {
-                        element_id: this.alt,
+                    sendEvent('button_click', {
                         product_id: this.dataset.productId,
                         product_name: this.dataset.productName,
-                        price: parseFloat(this.dataset.price)
+                        price: parseFloat(this.dataset.price),
+                        action: 'view_product',
+                        element_id: this.alt
                     });
                 });
             });
 
-            // Button clicks (Add to Cart and Buy Now)
+            // Button clicks (Add to Cart and Buy Now) with new structure
             document.querySelectorAll('button[data-action]').forEach(button => {
                 button.addEventListener('click', function() {
-                    sendEvent('button_click', {
-                        element_id: this.textContent.trim(),
-                        action: this.dataset.action,
+                    const action = this.dataset.action;
+                    const eventData = {
                         product_id: this.dataset.productId,
                         product_name: this.dataset.productName,
-                        price: parseFloat(this.dataset.price)
-                    });
+                        price: parseFloat(this.dataset.price),
+                        action: action,
+                        element_id: this.textContent.trim()
+                    };
+                    
+                    sendEvent('button_click', eventData);
                 });
             });
 
@@ -504,6 +517,7 @@
 
             // Log initial setup
             logEvent(`🚀 Analytics initialized - User: ${userId}, Session: ${sessionId}`);
+            logEvent(`📱 Client: ${getClientInfo().screen_resolution}, Language: ${getClientInfo().language}`);
         });
 
         // Note: The backend service (Service-A) must be configured to allow CORS
