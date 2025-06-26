@@ -1,9 +1,8 @@
 # Real-time User Activity Tracking - Frontend
 
-A modern, responsive web application that demonstrates real-time user activity tracking and analytics. This frontend application simulates an e-commerce mobile phone store while capturing and sending user interaction data to a backend analytics service.
+A modern, responsive web application that demonstrates real-time user activity tracking. This frontend application simulates an e-commerce mobile phone store while capturing and sending user interaction data to a clean, simplified backend ingestion service.
 
 ## 🚀 Features
-
 
 ### 📊 Real-time Analytics Tracking
 - **User Identification**: Persistent user IDs stored in localStorage
@@ -14,17 +13,18 @@ A modern, responsive web application that demonstrates real-time user activity t
   - Product image clicks
   - Button interactions (Add to Cart, Buy Now)
 - **Real-time Event Log**: Live display of tracked events with timestamps
+- **CORS Integration**: Proper cross-origin communication with backend
 
-### 🔧 Technical Features
-- **Static HTML**: Single-page application with embedded JavaScript
-- **Backend Integration**: RESTful API communication with analytics backend
-- **Error Handling**: Graceful error handling for network issues
-- **CORS Support**: Configured for cross-origin requests
 
-## 📋 Prerequisites
-- Modern web browser with JavaScript enabled
-- Backend analytics service running on `http://localhost:9094`
-- CORS properly configured on the backend
+## 🏗️ Architecture
+
+```
+Frontend (localhost:3000) → Backend (localhost:9094)
+     |                            |
+     | 1. OPTIONS (Preflight)     |
+     | 2. POST /api/v1/events/track |
+     | 3. Receive JSON Response   |
+```
 
 ## 📊 Tracked Events
 
@@ -33,7 +33,7 @@ The application tracks the following user interactions:
 ### 1. Page View Events
 - **Trigger**: Page load
 - **Data**: Page title, type, total products count
-- **Endpoint**: `POST /track/event`
+- **Endpoint**: `POST /api/v1/events/track`
 
 ### 2. Search Events
 - **Trigger**: Search button click or Enter key press
@@ -48,43 +48,61 @@ The application tracks the following user interactions:
 - **Trigger**: Add to Cart or Buy Now button clicks
 - **Data**: Action type, product details, price
 
+## 📡 API Integration
 
 ### Event Payload Structure
 ```json
 {
+  "event_type": "button_click|search|page_view|image_click",
   "timestamp": "2024-01-01T12:00:00.000Z",
   "user_id": "user-abc123",
   "session_id": "session-xyz789",
-  "event_type": "page_view|search|image_click|button_click",
-  "page_url": "http://localhost:8000",
-  "additional_data": {}
+  "page_url": "http://localhost:3000",
+  "event_data": {
+    "action": "add_to_cart",
+    "product_id": "phone-001",
+    "product_name": "iPhone 15 Pro"
+  },
+  "client_info": {
+    "user_agent": "Mozilla/5.0...",
+    "screen_resolution": "1920x1080",
+    "language": "en-US"
+  }
 }
 ```
 
+### Backend Response
+```json
+{
+  "status": "success",
+  "message": "Event received and processed successfully",
+  "event_id": "uuid-generated",
+  "request_id": "uuid-generated",
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
 
-### Event Tracking
-- Add new event types in the JavaScript section
-- Modify the `sendEvent` function for different payload structures
-- Update event logging format and styling
+### CORS Flow
+1. **Preflight Request**: Browser sends OPTIONS request
+2. **Backend Response**: Returns CORS headers allowing the request
+3. **Actual Request**: Browser sends POST with event data
+4. **Success Response**: Backend processes and responds with confirmation
 
-## 🐛 Troubleshooting
+## 🛠️ Backend Service
 
-### Common Issues
+The frontend communicates with a clean, simplified Go backend service:
 
-1. **Events not sending**
-   - Check if backend is running on port 9094
-   - Verify CORS configuration on backend
-   - Check browser console for network errors
-
-2. **Event log not updating**
-   - Ensure JavaScript is enabled
-   - Check for JavaScript errors in console
-   - Verify DOM elements exist
-
-3. **Styling issues**
-   - Ensure Tailwind CSS CDN is accessible
-   - Check if Google Fonts are loading
-   - Verify CSS custom properties
+### Backend Endpoints
+- `POST /api/v1/events/track` - Event tracking
 
 
-**Note**: This is a demo application for educational purposes. In production, ensure proper security measures, data privacy compliance, and robust error handling.
+### Start the Frontend
+```bash
+cd Frontend
+python3 -m http.server 3000
+# or
+npx serve -s . -l 3000
+```
+
+### Open in Browser
+Navigate to `http://localhost:3000`
